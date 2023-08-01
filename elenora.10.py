@@ -14,9 +14,13 @@ import threading
 import emoji
 import re
 import winsound
+import subprocess
+from pydub import AudioSegment
+from pydub.playback import play
 
 # tambahkan OpenAI key
-openai.api_key = "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"
+openai.api_key = "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"
+
 
 def membuat_subtitle():
     # Clear the text files after the assistant has finished speaking
@@ -40,6 +44,7 @@ is_Speaking = False
 owner_name = "Sandi"
 blacklist = ["Nightbot", "streamelements"]
 
+
 def membuat_respon(prompt):
     respon = openai.Completion.create(
         engine="text-davinci-003",
@@ -47,16 +52,17 @@ def membuat_respon(prompt):
         n=1,
         stop=None,
         temperature=0.5,
-        prompt=prompt
+        prompt=prompt,
     )
     return respon["choices"][0]["text"]
+
 
 def transcribe_audio(input_wav):
     r = sr.Recognizer()
     with sr.AudioFile(input_wav) as source:
         audio = r.record(source)
     try:
-        text = r.recognize_google(audio, language='id-ID')
+        text = r.recognize_google(audio, language="id-ID")
         print("User: " + text)
         return text
     except sr.UnknownValueError:
@@ -75,29 +81,28 @@ def record_audio():
     RATE = 44100
     WAVE_OUTPUT_FILENAME = "input.wav"
     p = pyaudio.PyAudio()
-    stream = p.open(format=FORMAT,
-                    channels=CHANNELS,
-                    rate=RATE,
-                    input=True,
-                    frames_per_buffer=CHUNK)
+    stream = p.open(
+        format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK
+    )
     frames = []
     print("Recording...")
     frames = []
-    while keyboard.is_pressed('RIGHT_SHIFT'):
+    while keyboard.is_pressed("RIGHT_SHIFT"):
         data = stream.read(CHUNK)
         frames.append(data)
     print("Stopped recording.")
     stream.stop_stream()
     stream.close()
     p.terminate()
-    wf = wave.open("input.wav", 'wb')
+    wf = wave.open("input.wav", "wb")
     wf.setnchannels(CHANNELS)
     wf.setsampwidth(p.get_sample_size(FORMAT))
     wf.setframerate(RATE)
-    wf.writeframes(b''.join(frames))
+    wf.writeframes(b"".join(frames))
     wf.close()
 
     membuat_subtitle()  # Tambahkan pemanggilan fungsi membuat_subtitle() di sini
+
 
 def main():
     # membuat variabel untuk menyimpan mode yang dipilih
@@ -115,7 +120,7 @@ def main():
             mode_terpilih = input()
 
             # validasi pilihan pengguna
-            while mode_terpilih not in ['1', '2', '3', '4']:
+            while mode_terpilih not in ["1", "2", "3", "4"]:
                 print("Mohon masukkan pilihan yang benar")
                 mode_terpilih = input()
 
@@ -123,7 +128,7 @@ def main():
         if mode_terpilih == "1":
             print("Press and Hold Right Shift to record audio")
             while True:
-                if keyboard.is_pressed('RIGHT_SHIFT'):
+                if keyboard.is_pressed("RIGHT_SHIFT"):
                     record_audio()
                     text = transcribe_audio("input.wav")
                     # Simpan pertanyaan ke dalam file chat.txt
@@ -139,7 +144,6 @@ def main():
                     speak_text(respon)
                     membuat_subtitle()  # Tambahkan pemanggilan fungsi membuat_subtitle() di sini
                     break
-                    
 
         elif mode_terpilih == "2":
             # mode tulis
@@ -159,20 +163,20 @@ def main():
             membuat_subtitle()  # Tambahkan pemanggilan fungsi membuat_subtitle() di sini
 
         elif mode_terpilih == "3":
-            #mode live youtube
+            # mode live youtube
             live_id = input("Livestream ID: ")
             # Threading is used to capture livechat and answer the chat at the same time
             t = threading.Thread(target=preparation)
             t.start()
             yt_livechat(live_id)
-                        
+
         elif mode_terpilih == "4":
             # keluar dari program
             break
 
+
 # function to capture livechat from youtube
 def yt_livechat(video_id):
-
     global chat
 
     live = pytchat.create(video_id=video_id)
@@ -184,22 +188,22 @@ def yt_livechat(video_id):
                 message = c.message.lower()
                 # Menghapus emoji dari pesan
                 message = emoji.demojize(message)
-                
+
                 print(f"{c.author.name}: {message}")
-                
+
                 # Simpan input ke dalam file chat.txt
                 with open("chat.txt", "a") as f:
                     f.write(f"{c.author.name}: {message}\n")
-                
+
                 # Membuat respon menggunakan OpenAI
                 prompt = f"{c.author.name}: {message}\nElenora:"
                 respon = membuat_respon(prompt)
                 print("Elenora: " + respon)
-                
+
                 # Simpan output ke dalam file output.txt
                 with open("output.txt", "a") as f:
                     f.write("Elenora: " + respon + "\n")
-                
+
                 speak_text(respon)
 
                 membuat_subtitle()  # Tambahkan pemanggilan fungsi membuat_subtitle() di sini
@@ -215,22 +219,51 @@ def preparation():
         chat_now = chat
         if is_Speaking == False and chat_now != chat_prev:
             # Saving chat history
-            conversation.append({'role': 'user', 'content': chat_now})
+            conversation.append({"role": "user", "content": chat_now})
             chat_prev = chat_now
             membuat_respon(prompt)
             print("Elenora: " + respon)
             speak_text(respon)
         time.sleep(1)
 
+
+eleven_api = "b3272d23006a4255c74ffcdbfa5f8aec"
+
+
 def speak_text(text):
-    # membuat file mp3 dari teks
-    file = gTTS(text=text, lang='id', slow=False)
+    # Define the API endpoint URL
+    url = "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?optimize_streaming_latency=0"
 
-    # menyimpan file sebagai mp3
-    file.save("output.mp3")
+    # Define the request headers
+    headers = {
+        "accept": "audio/mpeg",
+        "xi-api-key": eleven_api,
+        "Content-Type": "application/json",
+    }
 
-    # memutar suara
-    os.system("mpg123 output.mp3")
-    
-if __name__ == '__main__':
+    # Define the request payload
+    payload = {
+        "text": text,
+        "model_id": "eleven_monolingual_v1",
+        "voice_settings": {"stability": 0, "similarity_boost": 0},
+    }
+
+    # Send the POST request to the API
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Save the response content as an MP3 file
+        with open("output.mp3", "wb") as f:
+            f.write(response.content)
+
+        # Play the MP3 file using pydub
+        sound = AudioSegment.from_mp3("output.mp3")
+        play(sound)
+
+    else:
+        print("Error:", response.status_code)
+
+
+if __name__ == "__main__":
     main()

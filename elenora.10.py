@@ -18,8 +18,11 @@ import subprocess
 from pydub import AudioSegment
 from pydub.playback import play
 
-# tambahkan OpenAI key
-openai.api_key = "Ganti dengan API key OpenAI"
+# tambahkan API Key OpenAI 
+openai.api_key = "Masukan disini"
+
+#Tambahkan API Key ElevenLab
+eleven_api = "Masukan Disini"
 
 
 def membuat_subtitle():
@@ -226,13 +229,9 @@ def preparation():
             speak_text(respon)
         time.sleep(1)
 
-
-eleven_api = "b3272d23006a4255c74ffcdbfa5f8aec"
-
-
 def speak_text(text):
     # Define the API endpoint URL
-    url = "Ganti dengan API Key ElevenLab"
+    url = "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?optimize_streaming_latency=0"
 
     # Define the request headers
     headers = {
